@@ -1,5 +1,4 @@
 from flask import Flask
-
 from secret import SECRET_KEY
 
 app = Flask(__name__)

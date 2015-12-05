@@ -1,5 +1,5 @@
 # NBA Heatmap
 
-## api endpoints
+## API Endpoints
 
 
