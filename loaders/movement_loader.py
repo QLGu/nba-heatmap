@@ -1,6 +1,7 @@
 import psycopg2, psycopg2.extras
 import get_nba_data
 import settings
+from flask.ext.compress import Compress
 
 # this is the set of functions I used to build my database
 # the source of my data is ...

@@ -1,11 +1,6 @@
 from flask import Flask, request, jsonify
-import psycopg2
-import psycopg2.extras
-import datetime
-from flask.ext.compress import Compress
 import get_json_data
 # DSN location of the AWS - RDS instance
-DB_DSN = "host=nosql.crwpgv7o4ujt.us-west-2.rds.amazonaws.com dbname=nosql user=alexemorris password=msanalytics"
 
 app = Flask(__name__)
 

@@ -4,19 +4,20 @@
     <meta charset="utf-8">
     <title>Basketball Heatmap</title>
     
-	<link rel="stylesheet" href="nouislider.css">
-	<link rel="stylesheet" href="nouislider.pips.css">
-	<link rel="stylesheet" href="nouislider.tooltips.css">
-	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="/static/css/nouislider.css">
+	<link rel="stylesheet" href="/static/css/nouislider.pips.css">
+	<link rel="stylesheet" href="/static/css/nouislider.tooltips.css">
+    <link rel="stylesheet" href="/static/css/reset.css">
+	<link rel="stylesheet" href="/static/css/styles.css">
 
-    <script src="jquery-1.11.3.min.js"></script>
-	<script src="nouislider.min.js"></script>
-    <script src="heatmap.min.js"></script>
-    <script src="heatmap.js"></script>
+    <script src="/static/scripts/jquery-2.1.4.min.js"></script>
+	<script src="/static/scripts/nouislider.min.js"></script>
+    <script src="/static/scripts/heatmap.min.js"></script>
+    <script src="/static/scripts/scripts.js"></script>
     
   </head>
   <body>
-	<h1><img src="NBAlogo.svg"> NBA Heatmap</h1>
+	<h1><img src="/static/assets/NBAlogo.svg"> NBA Heatmap</h1>
 	<h2>Ball &amp; Player locations over entire game</h2>
 	
     <div id="heatmapContainerWrapper">
@@ -41,6 +42,6 @@
 			<optgroup label="Away Players" id="away_players_selector" class="player-selector"></optgroup>
 		</select>
 	</div>
-    
+
   </body>
 </html>

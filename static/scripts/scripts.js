@@ -1,6 +1,8 @@
 function getGames() {
     var games = $.ajax({
-        url: "get_games.php",
+        url: "/nba/games",
+        method: "GET",
+        data: {movement: "true"},
         dataType: "JSON",
         global: false,
         async: false,
@@ -8,17 +10,16 @@ function getGames() {
             return json
         }
     }).responseJSON;
-
     return games
 }
 
-function getPlayers(home_team, away_team) {
+function getPlayers(game_id) {
     var players = $.ajax({
-        url: "get_players.php",
-        method: "POST",
+        url: "/nba/games",
+        method: "GET",
         data: {
-            away_team_id: away_team,
-            home_team_id: home_team
+            movement: 'true',
+            game_id: game_id,
         },
         dataType: "JSON",
         global: false,
@@ -27,46 +28,39 @@ function getPlayers(home_team, away_team) {
             return json
         }
     }).responseJSON;
-
-    return players;
+    return players[game_id];
 
 }
 
-function getCoordinates(game, player) {
+function getCoordinates(game_id, player_id) {
     var coords = $.ajax({
-        url: "get_coordinates.php",
-        method: "POST",
+        url: "/nba/movement",
+        method: "GET",
         data: {
-            game_id: game,
-            player_id: player
+            game_id: game_id,
+            player_id: player_id
         },
         dataType: "JSON",
         global: false,
         async: false,
         success: function(json) {
             return json
-        }
+        },
+        timeout: 40000
     }).responseJSON;
 
-    return coords;
-
+    return coords['movement'];
 }
-
 
 
 function updateGames(games) {
     $.each(games, function(k, v) {
-        $('.games-list').append($('<li>', {
-            value: k,
-            text: v[0]
-        }));
         $('#games-selector').append($('<option>', {
             value: k,
-            text: v[0]
+            text: v['game_name']
         }));
     })
 }
-
 
 function updatePlayers(players) {
 
@@ -78,17 +72,17 @@ function updatePlayers(players) {
         text: "Ball"
     }));
 
-    $(players['home_players']).each(function() {
+    $(players['home_team']['players']).each(function() {
         $('#home_players_selector').append($('<option>', {
-            value: this['player_id'],
-            text: this['player_name']
+            value: this['playerid'],
+            text: this['firstname'] + " " + this['lastname'] + " (" + this['jersey'] + ")"
         }));
     })
 
-    $(players['away_players']).each(function() {
+    $(players['away_team']['players']).each(function() {
         $('#away_players_selector').append($('<option>', {
-            value: this['player_id'],
-            text: this['player_name']
+            value: this['playerid'],
+            text: this['firstname'] + " " + this['lastname'] + " (" + this['jersey'] + ")"
         }));
     })
 
@@ -107,6 +101,14 @@ function updateHeatmap(coords) {
         min: 0,
         data: current_coords_stand
     });
+}
+
+function getCurrentGame() {
+    return $('#games-selector').val()
+}
+
+function getCurrentPlayer() {
+    return $('#object-selector').val()
 }
 
 function clearHeatmap() {
@@ -140,7 +142,6 @@ function indexToTime(index) {
 
 
 function animateHeatmap(animate_coords) {
-
     
     end = animate_coords.length
     
@@ -190,109 +191,110 @@ function pauseHeatmap() {
 
 
 
-
 window.onload = function() {
-
     court_width = 94
     court_height = 50
-
     heatmap_width = $('#heatmapContainer').width()
     heatmap_height = $('#heatmapContainer').height()
 
 
     games = getGames()
-    game_id = Object.keys(games)[0]
-    players = getPlayers(games[game_id][1], games[game_id][2])
-    player_id = -1
+    updateGames(games)
 
+
+    game_id = getCurrentGame()
+
+    players = getPlayers(game_id)
+    updatePlayers(players)
+
+    player_id = getCurrentPlayer()
     coords = getCoordinates(game_id, player_id)
-    coords_stand = standardizeCoords(coords)
 
-    current_coords = coords
-    current_coords_stand = standardizeCoords(current_coords)
+    //updateHeatmap(coords)
+    //coords_stand = standardizeCoords(coords)
 
-    current = 0
-
+    //current_coords = coords
+    //current_coords_stand = standardizeCoords(current_coords)
+    //
+    //current = 0
+    //
     nba_heatmap = h337.create({
         container: document.getElementById('heatmapContainer'),
         maxOpacity: .65,
         radius: 8,
         blur: 0.5,
     });
-
-
+    //
+    //
     heatmapContainer = document.getElementById('heatmapContainerWrapper');
+    //
+    //var handlesSlider = document.getElementById('slider-handles');
+    //
+    //noUiSlider.create(handlesSlider, {
+    //    start: [0, 60],
+    //    range: {
+    //        min: 0,
+    //        max: 60
+    //    },
+    //    margin: 3,
+    //    pips: {
+    //        mode: 'values',
+    //        values: [0, 15, 30, 45, 60],
+    //        density: 1,
+    //        stepped: true
+    //    }
+    //});
+    //
+    //slider_val = handlesSlider.noUiSlider.get()
+    //current_index = [timeToIndex(slider_val[0]), timeToIndex(slider_val[1])]
+    //
 
-    var handlesSlider = document.getElementById('slider-handles');
-
-    noUiSlider.create(handlesSlider, {
-        start: [0, 60],
-        range: {
-            min: 0,
-            max: 60
-        },
-        margin: 3,
-        pips: {
-            mode: 'values',
-            values: [0, 15, 30, 45, 60],
-            density: 1,
-            stepped: true
-        }
-    });
-
-    slider_val = handlesSlider.noUiSlider.get()
-    current_index = [timeToIndex(slider_val[0]), timeToIndex(slider_val[1])]
-    
-    updateGames(games)
-    updatePlayers(players)
-    updateHeatmap(coords)
-
-    handlesSlider.noUiSlider.on('change', function(values, handle) {
-        current_index = [timeToIndex(values[0]), timeToIndex(values[
-            1])]
-        updateHeatmap(coords)
-    })
+    //handlesSlider.noUiSlider.on('change', function(values, handle) {
+    //    current_index = [timeToIndex(values[0]), timeToIndex(values[
+    //        1])]
+    //    updateHeatmap(coords)
+    //})
 	
-	
-	
-	
-	$('#games-selector').change(function() {
-	    game_id = $(this).val()
-	    home_team = games[game_id][1]
-	    away_team = games[game_id][2]
-	
-	    players = getPlayers(home_team, away_team)
-	    player_id = -1
-	
-		background_image = "url(logos/"+home_team+".svg),url(fullcourt.svg),url(wood_floor_by_gnrbishop.jpg)"
-	
-		$('#heatmapContainer').css("background-image", background_image)
-	
-	    coords = getCoordinates(game_id, -1)
-	
-	    updatePlayers(players)
-	    updateHeatmap(coords)
-	
-	});
-	
-	$('#object-selector').change(function() {
-	    player_id = $(this).val()
-	    coords = getCoordinates(game_id, player_id)
-	
-	    updateHeatmap(coords)
-	});
-	
-
-    $('#play').click(function() {
-	    console.log(current)
-        pauseHeatmap()
-        animate_coords = current_coords_stand.slice(current_index)
-        animateHeatmap(animate_coords)
-    })
-
-    $('#pause').click(function() {
-        pauseHeatmap()
-    })
+    //
+    //
+    //
+    //$('#games-selector').change(function() {
+	 //   game_id = $(this).val()
+	 //   home_team = games[game_id][1]
+	 //   away_team = games[game_id][2]
+    //
+	 //   players = getPlayers(home_team, away_team)
+	 //   player_id = -1
+    //
+		//background_image = "url(logos/"+home_team+".svg),url(fullcourt.svg),url(wood_floor_by_gnrbishop.jpg)"
+    //
+		//$('#heatmapContainer').css("background-image", background_image)
+    //
+	 //   coords = getCoordinates(game_id, -1)
+    //
+	 //   updatePlayers(players)
+	 //   updateHeatmap(coords)
+    //
+    //});
+    //
+    //$('#object-selector').change(function() {
+	 //   player_id = $(this).val()
+	 //   coords = getCoordinates(game_id, player_id)
+    //
+	 //   updateHeatmap(coords)
+    //});
+    //
+    //
+    //$('#play').click(function() {
+	 //   console.log(current)
+    //    pauseHeatmap()
+    //    animate_coords = current_coords_stand.slice(current_index)
+    //    animateHeatmap(animate_coords)
+    //})
+    //
+    //$('#pause').click(function() {
+    //    pauseHeatmap()
+    //})
 
 
 }
