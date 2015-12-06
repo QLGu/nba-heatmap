@@ -49,9 +49,6 @@ body * {
 #heatmapContainer {
     width: 846px;
     height: 450px;
-    background-image: url(/static/assets/team-logo.svg),
-    url(/static/assets/backgrounds/fullcourt.svg),
-    url(/static/assets/backgrounds/wood_floor_by_gnrbishop.jpg);
     background-size: 200px,cover,200px;
     background-position: center center,center center,center center;
     background-repeat: no-repeat,no-repeat,repeat;

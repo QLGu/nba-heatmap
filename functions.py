@@ -16,10 +16,10 @@ def removekey(d, key):
 def executeQuery(DB_DSN, sql, vars):
     conn = psycopg2.connect(dsn=DB_DSN)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    print sql % vars
     start = timer()
     cur.execute(sql, vars)
     end = timer()
-    print sql % vars
     print "Query Executed in " + str(end - start) + " Seconds"
     output = cur.fetchall()
     cur.close()
