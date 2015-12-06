@@ -1,0 +1,134 @@
+.clearfix:after {
+    visibility: hidden;
+    display: block;
+    font-size: 0;
+    content: " ";
+    clear: both;
+    height: 0;
+}
+
+.clearfix {
+    display: inline-block;
+}
+
+* html .clearfix {
+    height: 1%;
+}
+
+.clearfix {
+    display: block;
+}
+
+/* close commented backslash hack */
+body,html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #eee;
+}
+
+body {
+    padding: .5em;
+}
+
+body {
+    font-family: sans-serif;
+}
+
+body * {
+    font-weight: 200;
+}
+
+#heatmapContainerWrapper {
+    width: 846px;
+    height: 450px;
+    margin: 0 auto;
+    position: relative;
+}
+
+#heatmapContainer {
+    width: 846px;
+    height: 450px;
+    background-image: url(team-logo.svg),url(fullcourt.svg),url(wood_floor_by_gnrbishop.jpg);
+    background-size: 200px,cover,200px;
+    background-position: center center,center center,center center;
+    background-repeat: no-repeat,no-repeat,repeat;
+}
+
+h1 {
+    font-size: 3em;
+    color: #006bb7;
+    text-align: center;
+    margin: .5em 0 .25em;
+    font-family: 'Helvetica-Compressed';
+}
+
+h2 {
+    color: #000;
+    text-align: center;
+    font-size: 1.1em;
+    margin: 0 0 1em;
+    padding: 0;
+}
+
+#team-logo {
+    position: absolute;
+    z-index: 10000000;
+    margin: 0 auto;
+    display: block;
+    text-align: center;
+    width: 846px;
+    top: 135px;
+}
+
+h1 img {
+    height: 1em;
+    position: relative;
+    top: .1em;
+}
+
+#team-logo img {
+    width: 220px;
+}
+
+#slider-handles {
+    width: 846px;
+    margin: 0 auto;
+    margin-top: 1em;
+}
+
+#game-clock {
+    display: block;
+    position: absolute;
+    z-index: 10000000;
+    top: -50px;
+    background-color: #000;
+    font-family: 'Digital-7';
+    color: #ff374f;
+    height: 28px;
+    width: 80px;
+    left: 746px;
+    letter-spacing: 3px;
+    text-align: center;
+    font-size: 2em;
+    text-align: right;
+    padding: 10px;
+}
+
+.noUi-origin:nth-child(1) {
+    background-color: #006bb7;
+}
+
+.noUi-origin:nth-child(2) {
+    background-color: #fff;
+}
+
+#navigator {
+    width: 100%;
+}
+
+.container {
+    width: 846px;
+    margin: 0 auto;
+    margin-top: 5em;
+}
