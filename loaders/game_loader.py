@@ -13,7 +13,7 @@ DB_DSN = settings.DATABASE
 
 def drop_table():
     """
-    drops the table 'restaurants' if it exists
+    drops the table 'nba_games' if it exists
     :return:
     """
     query = 'DROP TABLE IF EXISTS nba_games'
@@ -55,11 +55,21 @@ def insert_data():
     :param data: a list of tuples with order ...
     :return:
     """
-    games = get_nba_data.get_games()
     conn = psycopg2.connect(dsn=DB_DSN)
-    for game, meta in games.iteritems():
+
+    #get game ids already in database
+    sql = 'SELECT DISTINCT game_id FROM nba_games'
+    cur = conn.cursor()
+    cur.execute(sql, vars)
+    rs = cur.fetchall()
+    game_ids = [str(item[0]) for item in rs]
+
+    #generator of new games
+    games = get_nba_data.get_games(game_ids)
+    while True:
         try:
-            data = (game, meta["home_team_id"], meta["away_team_id"], meta["game_name"], meta["home_team_score"],
+            meta = next(games)
+            data = (meta["game_id"], meta["home_team_id"], meta["away_team_id"], meta["game_name"], meta["home_team_score"],
                     meta["away_team_score"], meta["game_time"], meta["game_date"], meta["attendance"])
             print "uploading data"
             sql = 'INSERT INTO nba_games (game_id, home_team_id, away_team_id, game_name, home_team_score,' \
@@ -84,12 +94,12 @@ if __name__ == '__main__':
     # print "transforming data"
     # data = transform_data(INPUT_DATA)
 
-    print "dropping table"
-    drop_table()
-
-    # create the db
-    print "creating table"
-    create_table()
+    # print "dropping table"
+    # drop_table()
+    #
+    # # create the db
+    # print "creating table"
+    # create_table()
 
     # insert the data
     print "inserting data"

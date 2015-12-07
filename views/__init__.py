@@ -35,8 +35,8 @@ def get_games():
     calculates the total number of restaurants in each borough
     :return: a dict of all kv pairs, key = borough and value = count
     """
-    game_id, team_id, movement = request.args.get('game_id'), request.args.get('team_id'), request.args.get('movement')
-    out = functions.get_games(game_id, team_id, movement)
+    movement, game_id = request.args.get('movement'), request.args.get('game_id')
+    out = functions.get_games(movement, game_id)
 
     return jsonify(out)
 
@@ -52,4 +52,14 @@ def get_movement():
 
     return jsonify(out)
 
+@app.route('/nba/players')
+def get_players():
+    """
+    calculates the total number of restaurants in each borough
+    :return: a dict of all kv pairs, key = borough and value = count
+    """
+    game_id = request.args.get('game_id')
+    out = functions.get_players(game_id)
+
+    return jsonify(out)
 

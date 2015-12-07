@@ -2,17 +2,21 @@ import requests
 import json
 from psycopg2.extras import Json
 import datetime
+from itertools import chain
 
-# def merge_two_dicts(x, y):
-#     '''Given two dicts, merge them into a new dict as a shallow copy.'''
-#     z = x.copy()
-#     z.update(y)
-#     return z
+def merge_two_dicts(x, y):
+    '''Given two dicts, merge them into a new dict as a shallow copy.'''
+    z = x.copy()
+    z.update(y)
+    return z
 
 def get_teams():
 
-    with open('teams.json', 'r') as fp:
-        teams = json.load(fp)
+    # try:
+    #     with open('teams.json', 'r') as fp:
+    #         teams = json.load(fp)
+    # except IOError:
+    teams = {}
 
     url = "http://stats.nba.com/stats/leaguedashteamstats?Conference=&DateFrom=&DateTo=&Division=&" \
           "GameScope=&GameSegment=&LastNGames=0&LeagueID=00&Location=&MeasureType=Base&Month=0&" \
@@ -34,6 +38,7 @@ def get_teams():
                   "TeamID="+str(team_id)+"&season=2015-16"
             response = requests.get(url)
             table = response.json()["resultSets"][0]["rowSet"][0]
+            print table
             teams[team_id] = {
                 "city": table[2],
                 "conference": table[5],
@@ -44,7 +49,8 @@ def get_teams():
                 "wins": table[8],
                 "losses": table[9],
                 "division-rank": table[12],
-                "conference-rank": table[11]
+                "conference-rank": table[11],
+                "name": table[2] + " " + table[3]
             }
 
     with open('teams.json', 'w') as outfile:
@@ -52,24 +58,16 @@ def get_teams():
 
     return teams
 
-get_teams()
+# get_teams()
 
-def get_games():
+def get_games(completed_games):
 
-    with open('games.json', 'r') as fp:
-        games = json.load(fp)
-
-    game_ids = []
     url = "http://stats.nba.com/stats/leaguegamelog?Counter=1000&Direction=DESC&LeagueID=00&PlayerOrTeam=T&" \
           "Season=2015-16&SeasonType=Regular+Season&Sorter=PTS"
     response = requests.get(url)
-    table = response.json()["resultSets"][0]["rowSet"]
-
-    for row in table:
-        game_ids.append(str(row[4]))
-
+    game_ids = [str(row[4]) for row in response.json()["resultSets"][0]["rowSet"]]
     for index, game_id in enumerate(game_ids):
-        if game_id not in games.keys():
+        if game_id not in completed_games:
             url = "http://stats.nba.com/stats/boxscoresummaryv2?GameID="+str(game_id)
             try:
                 response = requests.get(url)
@@ -78,7 +76,8 @@ def get_games():
                 game_scores = table[5]["rowSet"]
                 stats_available = table[8]["rowSet"][0][2] + table[8]["rowSet"][0][3]
                 if stats_available == 2:
-                    games[game_id] = {
+                    yield {
+                        "game_id": game_id,
                         "attendance": game_info[1],
                         "game_date": datetime.datetime.strptime(game_info[0], '%A, %B %d, %Y').strftime('%m-%d-%y'),
                         "game_time": game_info[2].split(":")[0] + ":" + str(int(game_info[2].split(":")[1]) % 60),
@@ -93,64 +92,74 @@ def get_games():
                     print "No Tracking Information Available: " + str(game_id)
             except KeyError:
                 print str(game_id) + "error"
-            print index
-
-    with open('games.json', 'w') as outfile:
-        json.dump(games, outfile, sort_keys=True, indent=4, separators=(',', ': '))
-
-    return games
 
 
-def get_movement(completed_games):
-    with open('games.json', 'r') as fp:
-        game_ids = json.load(fp).keys()
-
-
+def get_players(completed_games):
+    try:
+        with open('games.json', 'r') as fp:
+            game_ids = json.load(fp).keys()
+    except IOError:
+        game_ids = get_games()
 
     for game_id in game_ids:
         if game_id not in completed_games:
             current_event = 1
-            in_a_row = 0
-            movement = {}
             header = False
-            while True:
-                url = "http://stats.nba.com/stats/locations_getmoments/?eventid="+str(current_event)+"&gameid="+game_id
+            while header is False:
+                url = "http://stats.nba.com/stats/locations_getmoments/?eventid=%s&gameid=" + str(game_id)
                 try:
-                    response = requests.get(url)
-                    moments = response.json()["moments"]
-                    if not header:
-                        movement["away_team"] = response.json()["visitor"]
-                        movement["home_team"] = response.json()["home"]
-                        movement["movement"] = {}
-                        header = True
-                    in_a_row = 0
-                    for moment in moments:
-                        # For each player/ball in the list found within each moment
-                        for player in moment[5]:
-                            if player[1] in movement["movement"].keys():
-                                movement["movement"][player[1]]["rows"].append(
-                                    [moments.index(moment), moment[1], player[2], player[3], moment[2], moment[3]]
-                                )
-                            else:
-                                movement["movement"][player[1]] = {
-                                    "header": ["index", "timestamp", "x", "y", "game_clock", "shot_clock"],
-                                    "rows": [
-                                        [moments.index(moment), moment[1], player[2], player[3], moment[2], moment[3]]
-                                    ]
-                                }
+                    response = requests.get(url % (current_event, ))
+                    header = True
+                    yield (game_id, Json(response.json()["home"]), Json(response.json()["visitor"]))
+
                 except ValueError:
-                    in_a_row += 1
-                    if in_a_row == 20:
-                        break
-                    print "No Events Available: " + str(game_id) + "/" + str(current_event)
+                    pass
                 except KeyError:
-                    in_a_row += 1
-                    if in_a_row == 20:
-                        break
-                    print "No Events Available: " + str(game_id) + "/" + str(current_event)
+                    pass
                 finally:
                     current_event += 1
-            yield (game_id, Json(movement["home_team"]), Json(movement["away_team"]), Json(movement["movement"]))
         else:
+            pass
             print "Skipping game id " + str(game_id)
+
+
+
+def get_location_data(game_ids):
+    current_event = 0
+    for game_id in game_ids:
+        in_a_row = 0
+        current_moment = []
+        done = []
+        while True:
+            print current_event
+
+            try:
+                url = "http://stats.nba.com/stats/locations_getmoments/?eventid=%s&gameid=" + str(game_id)
+                response = requests.get(url % current_event)
+                moments = response.json()["moments"]
+                in_a_row = 0
+                for moment in moments:
+
+                        # if entry not in movement:
+                    if moment[1] not in done:
+                        for player in moment[5]:
+                            entry = (game_id, player[1], moment[1], player[2], player[3], moment[2], moment[3])
+                            current_moment.append(entry)
+                        done.append(moment[1])
+
+            except ValueError:
+                in_a_row += 1
+                if in_a_row == 20:
+                    break
+                print "No Events Available: " + str(game_id) + "/" + str(current_event)
+            except KeyError:
+                in_a_row += 1
+                if in_a_row == 20:
+                    break
+                print "No Events Available: " + str(game_id) + "/" + str(current_event)
+            finally:
+                current_event += 1
+                if current_event % 10 == 0:
+                    yield current_moment
+                    current_moment = []
 

@@ -19,16 +19,16 @@ function getPlayers(game_id) {
         url: "/nba/games",
         method: "GET",
         data: {
-            movement: 'true',
             game_id: game_id,
         },
         dataType: "JSON",
         global: false,
         async: false,
-        success: function(players) {
+        success: function(object) {
             console.log("got players")
-            updateBackgroundImage(players[game_id]['home_team_id'])
-            getCoordinates(game_id, updatePlayers(players[game_id]))
+            console.log(object)
+            updateBackgroundImage(object[game_id]['home_team_id'])
+            getCoordinates(game_id, updatePlayers(object))
         }
     });
 }
@@ -84,6 +84,8 @@ function updatePlayers(players) {
             text: this['firstname'] + " " + this['lastname'] + " (" + this['jersey'] + ")"
         }));
     })
+        $("select").select2();
+
     return $('#object-selector').val()
 
 }
@@ -235,6 +237,8 @@ window.onload = function() {
             stepped: true
         }
     });
+
+    $("select").select2();
 
     initializeData();
 

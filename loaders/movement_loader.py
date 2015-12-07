@@ -1,7 +1,11 @@
 import psycopg2, psycopg2.extras
 import get_nba_data
 import settings
-from flask.ext.compress import Compress
+import csv
+
+
+
+from psycopg2.extras import Json
 
 # this is the set of functions I used to build my database
 # the source of my data is ...
@@ -12,12 +16,24 @@ from flask.ext.compress import Compress
 # DSN location of the AWS - RDS instance
 DB_DSN = settings.DATABASE
 
+
+def process_file(conn, table_name, file_object):
+    SQL_STATEMENT = """
+    COPY %s FROM STDIN WITH
+        CSV
+        DELIMITER AS ','
+    """
+    cursor = conn.cursor()
+    cursor.copy_expert(sql=SQL_STATEMENT % table_name, file=file_object)
+    conn.commit()
+    cursor.close()
+
 def drop_table():
     """
     drops the table 'restaurants' if it exists
     :return:
     """
-    query = 'DROP TABLE IF EXISTS nba_movement'
+    query = 'DROP TABLE IF EXISTS nba_locations'
 
     try:
         conn = psycopg2.connect(dsn=DB_DSN)
@@ -35,7 +51,8 @@ def create_table():
     creates a postgres table with columns ...
     :return:
     """
-    query = "CREATE TABLE nba_movement (game_id TEXT UNIQUE, home_team JSON, away_team JSON, movement JSON)"
+    query = 'CREATE TABLE nba_locations (game_id TEXT, player_id TEXT, m_timestamp TEXT , x FLOAT' \
+            ', y FLOAT, game_clock FLOAT, shot_clock FLOAT)'
     try:
         conn = psycopg2.connect(dsn=DB_DSN)
         cur = conn.cursor()
@@ -56,44 +73,54 @@ def insert_data():
     """
     conn = psycopg2.connect(dsn=DB_DSN)
 
-    sql = 'SELECT game_id FROM nba_movement'
+    sql = 'SELECT DISTINCT game_id FROM nba_games'
     cur = conn.cursor()
     cur.execute(sql, vars)
     rs = cur.fetchall()
-    game_ids = [str(item[0]) for item in rs]
-    conn.close()
+    all_game_ids = [str(item[0]) for item in rs]
 
-    movement = get_nba_data.get_movement(game_ids)
+    sql = 'SELECT DISTINCT game_id FROM nba_locations'
+    cur = conn.cursor()
+    cur.execute(sql, vars)
+    rs = cur.fetchall()
+    existing_game_ids = [str(item[0]) for item in rs]
+
+    game_ids = [item for item in all_game_ids if item not in existing_game_ids]
+    print game_ids
+
+    movement = get_nba_data.get_location_data(game_ids)
 
     while True:
-        data = next(movement)
-        conn = psycopg2.connect(dsn=DB_DSN)
         try:
             print "uploading data"
-            sql = 'INSERT INTO nba_movement (game_id, home_team, away_team, movement)' \
-                    'VALUES (%s, %s, %s, %s)'
-            cur = conn.cursor()
-            cur.execute(sql, data)
-            conn.commit()
+            while True:
+                data = next(movement)
+                print "uploading"
+                cur = conn.cursor()
+                args_str = ','.join(cur.mogrify("(%s, %s, %s, %s, %s, %s, %s)", x) for x in data)
+                cur.execute("INSERT INTO nba_locations (game_id, player_id, m_timestamp, x, y, game_clock, shot_clock)"
+                            " VALUES " + args_str)
+                print "uploaded"
+                conn.commit()
         except psycopg2.Error as e:
             print e
         except StopIteration:
             break
         else:
             cur.close()
-            conn.close()
-
+        break
+    conn.close()
 
 if __name__ == '__main__':
     # running this program as a main file will perform ALL the ETL
     # it will extract and transform the data from it file
 
-    # print "dropping table"
-    # drop_table()
-    #
-    # # create the db
-    # print "creating table"
-    # create_table()
+    print "dropping table"
+    drop_table()
+
+    #create the db
+    print "creating table"
+    create_table()
 
     # insert the data
     print "inserting data"
