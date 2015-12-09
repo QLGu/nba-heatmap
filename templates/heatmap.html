@@ -22,13 +22,29 @@
 
   </head>
   <body>
-    <div id="loading"><i class="fa fa-circle-o-notch fa-spin"></i></div>
+    <div id="loading-cover"></div>
     <header>
         <h1><img src="/static/assets/NBALogo.svg"> NBA Heatmap</h1>
         <h2>Ball &amp; Player locations over entire game</h2>
     </header>
+    <div id="game-info" class="container clearfix">
+        <div class="clearfix">
+            <div id="home-team" class="team-info">
+                <img />
+                <h3 id="home-team-name"></h3>
+                <h3 id="home-team-score"></h3>
+            </div>
+            <div id="away-team" class="team-info">
+                <h3 id="away-team-score"></h3>
+                <h3 id="away-team-name"></h3>
+                <img />
+            </div>
+        </div>
+        <div id="game-date"></div>
+    </div>
     <div id="heatmapContainerWrapper">
-      <div id="heatmapContainer"></div>
+      <div id="heatmapContainer"><div id="loading"><i class="fa fa-circle-o-notch fa-spin"></i></div>
+</div>
     </div>
 
     <div id="slider-handles"></div>
@@ -43,11 +59,11 @@
                     <i class="fa fa-pause fa-2x"></i>
                 </button>
                 <button type="button" value="Go To Start" id="forward">
-                    <i class="fa fa-fast-backward fa-2x"></i>
+                    <i class="fa fa-refresh fa-2x"></i>
                 </button>
-                <button type="button" value="Go To End" id="back">
-                    <i class="fa fa-fast-forward fa-2x"></i>
-                </button>
+{#                <button type="button" value="Go To End" id="back">#}
+{#                    <i class="fa fa-fast-forward fa-2x"></i>#}
+{#                </button>#}
             </div>
             <div class="data-selectors clearfix">
                 <select id="games-selector" ></select>

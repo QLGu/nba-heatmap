@@ -100,7 +100,7 @@ def get_active_players(game_id):
     vars = (game_id,)
     try:
         rs = executeQuery(DB_DSN, sql, vars)
-        out['active_players'] = rs
+        out['active_players'] = [item.values()[0] for item in rs]
 
     except psycopg2.Error as e:
         print e.message

@@ -72,7 +72,7 @@ def insert_data():
     game_ids = [item for item in all_game_ids if item not in existing_game_ids]
     print game_ids
 
-    movement = get_nba_data.get_location_data(game_ids)
+    movement = get_nba_data.get_location_data(['0021500003'])
 
     while True:
         try:
@@ -100,12 +100,12 @@ if __name__ == '__main__':
     # running this program as a main file will perform ALL the ETL
     # it will extract and transform the data from it file
     #
-    print "dropping table"
-    drop_table()
-
-    #create the db
-    print "creating table"
-    create_table()
+    # print "dropping table"
+    # drop_table()
+    #
+    # #create the db
+    # print "creating table"
+    # create_table()
 
     # insert the data
     print "inserting data"

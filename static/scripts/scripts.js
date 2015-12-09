@@ -9,7 +9,6 @@ function initializeData() {
         async: true,
         success: function(games) {
             console.log("got games")
-            console.log(games)
             getPlayers(updateGames(games))
         }
     });
@@ -26,33 +25,45 @@ function getPlayers(game_id) {
         async: false,
         success: function(object) {
             console.log("got players")
+            home_team_id = object[game_id]['home_team_id']
+            away_team_id = object[game_id]['away_team_id']
             console.log(object)
-            updateBackgroundImage(object[game_id]['home_team_id'])
-            getCoordinates(game_id, updatePlayers(object))
+            $('#home-team').find('img').attr('src', getLogo(home_team_id))
+            $('#away-team').find('img').attr('src', getLogo(away_team_id))
+            $('#game-date').html(object[game_id]['game_date'])
+            $('#home-team-score').html(object[game_id]['home_team_score'])
+            $('#away-team-score').html(object[game_id]['away_team_score'])
+            $('#home-team-name').html(object['home_team']['name'])
+            $('#away-team-name').html(object['away_team']['name'])
+
+            updatePlayers(object, game_id)
         }
     });
 }
 
 function getCoordinates(game_id, player_id) {
-    clearHeatmap()
-    $('#loading').fadeIn()
-    $.ajax({
-        url: "/nba/movement",
-        method: "GET",
-        data: {
-            game_id: game_id,
-            player_id: player_id
-        },
-        global: false,
-        async: true,
-        success: function(coords) {
-            console.log("got coords");
-            updateHeatmap(coords['locations']);
-            $('#loading').fadeOut(1000, function() {
-                updateHeatmap(coords['locations']);
-            })
-        }
-    })
+    startLoading()
+    $.get('/nba/movement', {game_id: game_id, player_id: player_id}, function(coords) {
+        stopLoading(coords)
+    });
+    //
+    //$.ajax({
+    //    url: "/nba/movement",
+    //    method: "GET",
+    //    data: {
+    //        game_id: game_id,
+    //        player_id: player_id
+    //    },
+    //    global: false,
+    //    async: true,
+    //    success: function(coords) {
+    //        console.log("got coords");
+    //        updateHeatmap(coords['locations']);
+    //        $('#loading').fadeOut(1000, function() {
+    //            updateHeatmap(coords['locations']);
+    //        })
+    //    }
+    //})
 }
 
 function updateGames(games) {
@@ -62,11 +73,14 @@ function updateGames(games) {
             text: v['game_name']
         }));
     })
-    console.log($('#games-selector').val())
     return $('#games-selector').val()
 }
 
-function updatePlayers(players) {
+function getLogo(team_id) {
+    return '/static/assets/logos/' + team_id + '.svg'
+}
+
+function updatePlayers(players, game_id) {
 
     $('.player-selector').empty()
 
@@ -88,13 +102,48 @@ function updatePlayers(players) {
             text: this['firstname'] + " " + this['lastname'] + " (" + this['jersey'] + ")"
         }));
     })
-        $("select").select2();
+
+    $.get('/nba/players', {game_id: game_id}, function(active_players) {
+        $('#object-selector option').each(function() {
+            if (active_players['active_players'].indexOf($(this).val()) == -1 ) {
+                console.log(this)
+                $(this).attr('disabled','disabled');
+            }
+        })
+    });
+
+    $("select").select2();
 
     return $('#object-selector').val()
 
 }
 
+function startLoading() {
+    pauseHeatmap()
+
+      $("select").prop("disabled", true);
+
+    $('#loading').fadeIn(500, function() {
+
+    })
+            $('.heatmap-canvas').animate(500, {'opacity':0}, function(){
+            clearHeatmap()
+            })
+
+}
+
+function stopLoading(location_data) {
+
+    updateHeatmap(location_data['locations']);
+    $('#loading').fadeOut(500, function() {
+        $('.heatmap-canvas').animate(500, {'opacity':1})
+              $("select").prop("disabled", false);
+    })
+}
+
+
 function updateHeatmap(data) {
+    updateBackgroundImage(home_team_id)
     current = 0
     full_data = standardizeCoords(data)
     current_data = full_data
@@ -135,6 +184,7 @@ function changeHeatmapRange(range) {
 }
 
 function clearHeatmap() {
+    pauseHeatmap()
 	nba_heatmap.setData({
         max: 5,
         min: 0,
@@ -212,7 +262,7 @@ function pauseHeatmap() {
 }
 
 
-window.onload = function() {
+$(document).ready(function() {
     court_width = 94;
     court_height = 50;
     heatmapContainer = $('#heatmapContainer');
@@ -246,6 +296,7 @@ window.onload = function() {
 
     initializeData();
 
+
     handlesSlider.noUiSlider.on('change', function(values, handle) {
         heatmap_range = [values[0], values[1]];
         changeHeatmapRange(heatmap_range);
@@ -255,9 +306,13 @@ window.onload = function() {
         getPlayers(getCurrentGame())
     });
 
-    $('#object-selector').change(function() {
-	   getCoordinates(getCurrentGame(),getCurrentPlayer())
-    });
+    //$('#object-selector').change(function() {
+	 //  getCoordinates(getCurrentGame(),getCurrentPlayer())
+    //});
+
+    $('.fa-refresh').click(function() {
+        getCoordinates(getCurrentGame(),getCurrentPlayer())
+    })
 
     $('#play').click(function() {
         pauseHeatmap()
@@ -268,4 +323,5 @@ window.onload = function() {
         pauseHeatmap();
     });
 
-}
+})
+
