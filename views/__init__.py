@@ -1,39 +1,35 @@
 from app import app
 import functions
 from flask import render_template, jsonify, request
-from flask.ext.compress import Compress
-
 
 @app.route('/')
-def home():
-    return render_template('home.html', methods=[{'value':'spectral', 'name': 'Spectral'}, {'name':'K-Means','value': 'kmeans'}, {'name':'Hierarchical', 'value': 'hierarchical'}])
+def homepage():
+    """
+    :return: a json of teams
+    """
+    return render_template('home.html')
 
 
-def removekey(d, key):
-    """
-    calculates the total number of restaurants in each borough
-    :return: a dict of all kv pairs, key = borough and value = count
-    """
-    r = dict(d)
-    del r[key]
-    return r
+
+@app.route('/heatmap')
+def heatmap():
+    return render_template('heatmap.html')
 
 
 @app.route('/nba/teams')
 def get_teams():
     """
-    Returns meta data for all teams in database
-    :return: a json of all kv pairs, key = team id and value = count
+    :return: a json of teams
     """
     team_id, team_abbr = request.args.get('id'), request.args.get('abbr')
     out = functions.get_teams(team_id, team_abbr)
     return jsonify(out)
 
+
 @app.route('/nba/games')
 def get_games():
     """
-    calculates the total number of restaurants in each borough
-    :return: a dict of all kv pairs, key = borough and value = count
+    :return: a json of games based on input parameters
     """
     movement, game_id = request.args.get('movement'), request.args.get('game_id')
     out = functions.get_games(movement, game_id)
@@ -44,22 +40,23 @@ def get_games():
 @app.route('/nba/movement')
 def get_movement():
     """
-    calculates the total number of restaurants in each borough
-    :return: a dict of all kv pairs, key = borough and value = count
+    :return: json of movement information for player and game id from GET arguments
     """
     game_id, player_id = request.args.get('game_id'), request.args.get('player_id')
     out = functions.get_movement(game_id, player_id)
 
     return jsonify(out)
 
+
 @app.route('/nba/players')
-def get_players():
+def get_active_players():
     """
-    calculates the total number of restaurants in each borough
-    :return: a dict of all kv pairs, key = borough and value = count
+    :return: json of players information for a given game id from GET arguments
     """
     game_id = request.args.get('game_id')
-    out = functions.get_players(game_id)
+    out = functions.get_active_players(game_id)
 
     return jsonify(out)
+
+
 

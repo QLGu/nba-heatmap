@@ -1,5 +1,6 @@
 import psycopg2, psycopg2.extras
 import get_nba_data
+
 import settings
 import csv
 
@@ -16,24 +17,11 @@ from psycopg2.extras import Json
 # DSN location of the AWS - RDS instance
 DB_DSN = settings.DATABASE
 
-
-def process_file(conn, table_name, file_object):
-    SQL_STATEMENT = """
-    COPY %s FROM STDIN WITH
-        CSV
-        DELIMITER AS ','
-    """
-    cursor = conn.cursor()
-    cursor.copy_expert(sql=SQL_STATEMENT % table_name, file=file_object)
-    conn.commit()
-    cursor.close()
-
 def drop_table():
     """
-    drops the table 'restaurants' if it exists
-    :return:
+    drops the table 'nba_locations' if it exists
     """
-    query = 'DROP TABLE IF EXISTS nba_locations'
+    query = 'DROP TABLE IF EXISTS nba_locations_new'
 
     try:
         conn = psycopg2.connect(dsn=DB_DSN)
@@ -48,11 +36,9 @@ def drop_table():
 
 def create_table():
     """
-    creates a postgres table with columns ...
-    :return:
+    creates table nba_locations
     """
-    query = 'CREATE TABLE nba_locations (game_id TEXT, player_id TEXT, m_timestamp TEXT , x FLOAT' \
-            ', y FLOAT, game_clock FLOAT, shot_clock FLOAT)'
+    query = 'CREATE TABLE nba_locations_new (game_id TEXT, player_id TEXT, locations JSON)'
     try:
         conn = psycopg2.connect(dsn=DB_DSN)
         cur = conn.cursor()
@@ -67,19 +53,17 @@ def create_table():
 
 def insert_data():
     """
-    inserts the data using execute many
-    :param data: a list of tuples with order ...
-    :return:
+    queries database for existing games and loads new locations from stats.nba.com using get_nba_data
     """
-    conn = psycopg2.connect(dsn=DB_DSN)
 
+    conn = psycopg2.connect(dsn=DB_DSN)
     sql = 'SELECT DISTINCT game_id FROM nba_games'
     cur = conn.cursor()
     cur.execute(sql, vars)
     rs = cur.fetchall()
     all_game_ids = [str(item[0]) for item in rs]
 
-    sql = 'SELECT DISTINCT game_id FROM nba_locations'
+    sql = 'SELECT DISTINCT game_id FROM nba_locations_new'
     cur = conn.cursor()
     cur.execute(sql, vars)
     rs = cur.fetchall()
@@ -95,13 +79,14 @@ def insert_data():
             print "uploading data"
             while True:
                 data = next(movement)
-                print "uploading"
-                cur = conn.cursor()
-                args_str = ','.join(cur.mogrify("(%s, %s, %s, %s, %s, %s, %s)", x) for x in data)
-                cur.execute("INSERT INTO nba_locations (game_id, player_id, m_timestamp, x, y, game_clock, shot_clock)"
-                            " VALUES " + args_str)
-                print "uploaded"
-                conn.commit()
+                for k, v in data[1].iteritems():
+                    insert = data[0], k, Json(v)
+                    print "uploading"
+                    sql = 'INSERT INTO nba_locations_new (game_id, player_id, locations)' \
+                        'VALUES (%s, %s, %s)'
+                    cur.execute(sql, insert)
+                    print "uploaded"
+                    conn.commit()
         except psycopg2.Error as e:
             print e
         except StopIteration:
@@ -114,7 +99,7 @@ def insert_data():
 if __name__ == '__main__':
     # running this program as a main file will perform ALL the ETL
     # it will extract and transform the data from it file
-
+    #
     print "dropping table"
     drop_table()
 

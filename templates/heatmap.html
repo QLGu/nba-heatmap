@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Basketball Heatmap</title>
+    
+	<link rel="stylesheet" href="/static/css/nouislider.css">
+	<link rel="stylesheet" href="/static/css/nouislider.pips.css">
+	<link rel="stylesheet" href="/static/css/nouislider.tooltips.css">
+    <link rel="stylesheet" href="/static/css/select2.min.css">
+    <link rel="stylesheet" href="/static/css/reset.css">
+	<link rel="stylesheet" href="/static/css/styles.css">
+	<link rel="stylesheet" href="/static/css/font-awesome.css">
+
+    <script src="/static/scripts/jquery-2.1.4.min.js"></script>
+	<script src="/static/scripts/nouislider.min.js"></script>
+    <script src="/static/scripts/select2.min.js"></script>
+    <script src="/static/scripts/heatmap.min.js"></script>
+    <script src="/static/scripts/scripts.js"></script>
+    <script src="https://use.typekit.net/kmj7woe.js"></script>
+    <script>try{Typekit.load({ async: true });}catch(e){}</script>
+
+  </head>
+  <body>
+    <div id="loading"><i class="fa fa-circle-o-notch fa-spin"></i></div>
+    <header>
+        <h1><img src="/static/assets/NBALogo.svg"> NBA Heatmap</h1>
+        <h2>Ball &amp; Player locations over entire game</h2>
+    </header>
+    <div id="heatmapContainerWrapper">
+      <div id="heatmapContainer"></div>
+    </div>
+
+    <div id="slider-handles"></div>
+
+    <div class="container">
+        <div class="navigator clearfix">
+            <div class="controls">
+                <button type="button" value="Play Animation" id="play">
+                    <i class="fa fa-play fa-2x"></i>
+                </button>
+                <button type="button" value="Pause Animation" id="pause">
+                    <i class="fa fa-pause fa-2x"></i>
+                </button>
+                <button type="button" value="Go To Start" id="forward">
+                    <i class="fa fa-fast-backward fa-2x"></i>
+                </button>
+                <button type="button" value="Go To End" id="back">
+                    <i class="fa fa-fast-forward fa-2x"></i>
+                </button>
+            </div>
+            <div class="data-selectors clearfix">
+                <select id="games-selector" ></select>
+                <select id="object-selector">
+                    <optgroup label="Other" id="other_players_selector" class="player-selector"></optgroup>
+                    <optgroup label="Home Players" id="home_players_selector" class="player-selector"></optgroup>
+                    <optgroup label="Away Players" id="away_players_selector" class="player-selector"></optgroup>
+                </select>
+            </div>
+        </div>
+    </div>
+
+  </body>
+</html>

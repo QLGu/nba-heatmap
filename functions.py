@@ -3,17 +3,27 @@ import psycopg2
 import psycopg2.extras
 import secret
 from timeit import default_timer as timer
-
 DB_DSN = secret.DATABASE
 
-
-
 def removekey(d, key):
+    """
+    removes a key from a dictionary and returns dictionary without that key
+    :param d: dictionary to change
+    :param key: key to remove
+    :return: d but with key removed.
+    """
     r = dict(d)
     del r[key]
     return r
 
 def executeQuery(DB_DSN, sql, vars):
+    """
+    executes a query on the database
+    :param DB_DSN: hostname of database to connect to
+    :param sql: sql query
+    :param vars: sql parameters vars
+    :return: query output
+    """
     conn = psycopg2.connect(dsn=DB_DSN)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     print sql % vars
@@ -28,8 +38,10 @@ def executeQuery(DB_DSN, sql, vars):
 
 def get_teams(team_id, team_abbr):
     """
-    calculates the total number of restaurants in each borough
-    :return: a dict of all kv pairs, key = borough and value = count
+    gets teams from nba_teams
+    :param team_id: team_id of team to fetch form database:
+    :param team_abbr: abbreviation of team to fetch form database:
+    :return: a dict of all kv pairs, key = team_id and value = dictionary of meta data
     """
     out = dict()
     team_id, team_abbr = request.args.get('id'), request.args.get('abbr')
@@ -57,104 +69,38 @@ def get_teams(team_id, team_abbr):
 
     return out
 
-def get_all_games(game_id, team_id):
-    """
-    calculates the total number of restaurants in each borough
-    :return: a dict of all kv pairs, key = borough and value = count
-    """
-    out = dict()
-    sql = "SELECT * FROM nba_games"
-    vars = tuple()
-
-    if (game_id != None) and (team_id == None):
-        sql += " WHERE game_id = %s"
-        vars = (game_id,)
-    elif (game_id == None) and (team_id != None):
-        sql += " WHERE home_team_id = %s OR away_team_id = %s"
-        vars = (team_id, team_id)
-    elif (game_id != None) and (team_id != None):
-        sql += " WHERE (home_team_id = %s OR away_team_id = %s) AND game_id = %s"
-        vars = (team_id, team_id, game_id)
-    try:
-        rs = executeQuery(DB_DSN, sql, vars)
-        for item in rs:
-            out[str(item['game_id'])] = {}
-            for i, v in item.iteritems():
-                if i != 'game_id':
-                    out[str(item['game_id'])][str(i)] = str(v)
-    except psycopg2.Error as e:
-        print e.message
-
-    return out
-
-
-def get_game(game_id, team_id, movement):
-    out = dict()
-
-    if game_id != None:
-        players = ", home_team, away_team "
-    else:
-        players = ""
-
-    if movement == "true":
-        table = "((SELECT game_id" + players + " FROM nba_players) a" \
-                  " LEFT JOIN (SELECT * FROM nba_games) b on a.game_id = b.game_id)"
-    else:
-        table = " nba_games a "
-
-    sql = "SELECT * FROM " + table
-    vars = tuple()
-
-    if game_id != None or team_id != None:
-        sql += " WHERE"
-
-    if game_id != None:
-        sql += " a.game_id = %s"
-        vars = vars + (game_id,)
-        if team_id != None:
-            sql += " AND"
-
-    if team_id != None:
-        sql += " (home_team_id = %s OR away_team_id = %s)"
-        vars = vars + (team_id, team_id)
-
-
-    try:
-        rs = executeQuery(DB_DSN, sql, vars)
-        for item in rs:
-            out[str(item['game_id'])] = {}
-            for i, v in item.iteritems():
-                # if i == "home_team" or i == "away_team":
-                #     out[i] = {}
-                #     out[i][str(i)] = v['players']
-                if i != 'game_id':
-                    if i =="game_date" or i=="game_time":
-                        v = str(v)
-                    out[str(item['game_id'])][str(i)] = v
-    except psycopg2.Error as e:
-        print e.message
-
-    return out
-
-
 def get_movement(game_id, player_id):
     """
-    calculates the total number of restaurants in each borough
-    :return: a dict of all kv pairs, key = borough and value = count
+    gets movements of a certain player from nba_movement
+    :param game_id: id of game to look in
+    :param player_id: id of player to get movements for
+    :return: list of movements containing x, y and clock information for every 40ms in game
     """
     out = dict()
-    sql = "SELECT * FROM nba_locations WHERE game_id = %s AND player_id = %s"
+    sql = "SELECT locations FROM nba_locations_new WHERE game_id = %s AND player_id = %s"
     vars = (game_id, player_id)
     try:
         rs = executeQuery(DB_DSN, sql, vars)
-        out["movement"] = []
-        for item in rs:
-            out["movement"].append({
-                "x": item["x"],
-                "y": item["y"],
-                "g": int(item["game_clock"]),
-                "s": round(item["shot_clock"], 1) if item["shot_clock"] != None else 0
-            })
+        out = rs[0]
+
+    except psycopg2.Error as e:
+        print e.message
+
+    return out
+
+def get_active_players(game_id):
+    """
+    gets movements of a certain player from nba_movement
+    :param game_id: id of game to look in
+    :param player_id: id of player to get movements for
+    :return: list of movements containing x, y and clock information for every 40ms in game
+    """
+    out = dict()
+    sql = "SELECT DISTINCT player_id FROM nba_locations_new WHERE game_id = %s"
+    vars = (game_id,)
+    try:
+        rs = executeQuery(DB_DSN, sql, vars)
+        out['active_players'] = rs
 
     except psycopg2.Error as e:
         print e.message
@@ -162,12 +108,18 @@ def get_movement(game_id, player_id):
     return out
 
 
-def get_games(movement, game_id):
 
+def get_games(movement, game_id):
+    """
+    gets movements of a certain player from nba_movement
+    :param movement: string to determine whether to look only for games with movement data
+    :param game_od: id of game to look for
+    :return: dictionary of key value pairs with game information and players if possible.
+    """
     out = dict()
 
     if movement == "true":
-        table = "((SELECT DISTINCT game_id FROM nba_locations) a" \
+        table = "((SELECT DISTINCT game_id FROM nba_locations_new) a" \
                   " LEFT JOIN (SELECT * FROM nba_games) b on a.game_id = b.game_id) a"
     else:
         table = " nba_games a "
@@ -197,7 +149,6 @@ def get_games(movement, game_id):
             sql = "SELECT home_team, away_team from nba_players WHERE game_id = %s"
             rs = executeQuery(DB_DSN, sql, vars)
             for item in rs:
-                print item
                 for i, v in item.iteritems():
                     # if i == "home_team" or i == "away_team":
                     #     out[i] = {}
@@ -207,37 +158,7 @@ def get_games(movement, game_id):
                             v = str(v)
                         out[str(i)] = v
 
-
     except psycopg2.Error as e:
         print e.message
 
-
-
     return out
-#
-# def get_players(game_id):
-#
-#     out = dict()
-#
-#
-#     sql = "SELECT * FROM nba_players WHERE game_id = %s"
-#     vars = (game_id,)
-#
-#
-#     try:
-#         rs = executeQuery(DB_DSN, sql, vars)
-#         for item in rs:
-#             out[str(item['game_id'])] = {}
-#             for i, v in item.iteritems():
-#                 if i == "home_team" or i == "away_team":
-#                 #     out[i] = {}
-#                 #     out[i][str(i)] = v['players']
-#                 if i != 'game_id':
-#                     if i =="game_date" or i=="game_time":
-#                         v = str(v)
-#                     out[str(item['game_id'])][str(i)] = v
-#     except psycopg2.Error as e:
-#         print e.message
-#
-#     return out
-#

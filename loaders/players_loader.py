@@ -32,8 +32,7 @@ def drop_table():
 
 def create_table():
     """
-    creates a postgres table with columns ...
-    :return:
+    creates table nba_players
     """
     query = "CREATE TABLE nba_players (game_id TEXT UNIQUE, home_team JSON, away_team JSON)"
     try:
@@ -50,9 +49,7 @@ def create_table():
 
 def insert_data():
     """
-    inserts the data using execute many
-    :param data: a list of tuples with order ...
-    :return:
+    queries database for existing games and loads new players into database from stats.nba.com using get_nba_data
     """
     conn = psycopg2.connect(dsn=DB_DSN)
 

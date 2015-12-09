@@ -14,7 +14,6 @@ DB_DSN = settings.DATABASE
 def drop_table():
     """
     drops the table 'nba_games' if it exists
-    :return:
     """
     query = 'DROP TABLE IF EXISTS nba_games'
 
@@ -31,8 +30,7 @@ def drop_table():
 
 def create_table():
     """
-    creates a postgres table with columns ...
-    :return:
+    creates table nba_games
     """
     query = "CREATE TABLE nba_games " \
             "(game_id TEXT UNIQUE, home_team_id TEXT, away_team_id TEXT, game_name TEXT, home_team_score INT, " \
@@ -51,9 +49,7 @@ def create_table():
 
 def insert_data():
     """
-    inserts the data using execute many
-    :param data: a list of tuples with order ...
-    :return:
+    queries database for existing games and loads new games from stats.nba.com using get_nba_data
     """
     conn = psycopg2.connect(dsn=DB_DSN)
 
@@ -88,11 +84,6 @@ def insert_data():
     conn.close()
 
 if __name__ == '__main__':
-    # running this program as a main file will perform ALL the ETL
-    # it will extract and transform the data from it file
-
-    # print "transforming data"
-    # data = transform_data(INPUT_DATA)
 
     # print "dropping table"
     # drop_table()

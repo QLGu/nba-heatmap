@@ -2,6 +2,8 @@ import requests
 import json
 from psycopg2.extras import Json
 import datetime
+from collections import defaultdict
+
 from itertools import chain
 
 def merge_two_dicts(x, y):
@@ -11,11 +13,10 @@ def merge_two_dicts(x, y):
     return z
 
 def get_teams():
-
-    # try:
-    #     with open('teams.json', 'r') as fp:
-    #         teams = json.load(fp)
-    # except IOError:
+    """
+    load the whole set of data into a data structure and THEN find the k:v
+    :return: dictionary keys as team id, value dictionary of meta information
+    """
     teams = {}
 
     url = "http://stats.nba.com/stats/leaguedashteamstats?Conference=&DateFrom=&DateTo=&Division=&" \
@@ -61,6 +62,11 @@ def get_teams():
 # get_teams()
 
 def get_games(completed_games):
+    """
+    load the whole set of data into a data structure and THEN find the k:v
+    :param list of games to ignore:
+    :return: dictionary keys as team id, value dictionary of meta information
+    """
 
     url = "http://stats.nba.com/stats/leaguegamelog?Counter=1000&Direction=DESC&LeagueID=00&PlayerOrTeam=T&" \
           "Season=2015-16&SeasonType=Regular+Season&Sorter=PTS"
@@ -95,11 +101,12 @@ def get_games(completed_games):
 
 
 def get_players(completed_games):
-    try:
-        with open('games.json', 'r') as fp:
-            game_ids = json.load(fp).keys()
-    except IOError:
-        game_ids = get_games()
+    """
+    scrapes players for certain games from stats.nba.com
+    :param list of games to ignore:
+    :return: pair of dictionaries containing information on home and away players
+    """
+    game_ids = get_games()
 
     for game_id in game_ids:
         if game_id not in completed_games:
@@ -125,41 +132,44 @@ def get_players(completed_games):
 
 
 def get_location_data(game_ids):
-    current_event = 0
+    """
+    scrapes location data for certain games from stats.nba.com
+    :param list of games to ignore:
+    :return: generator object which yields list of tuples containing location information for 10 moments
+    """
     for game_id in game_ids:
-        in_a_row = 0
         current_moment = []
         done = []
+        in_a_row = 0
+        current_event = 0
+        output = dict()
         while True:
             print current_event
-
             try:
                 url = "http://stats.nba.com/stats/locations_getmoments/?eventid=%s&gameid=" + str(game_id)
                 response = requests.get(url % current_event)
                 moments = response.json()["moments"]
-                in_a_row = 0
                 for moment in moments:
-
-                        # if entry not in movement:
                     if moment[1] not in done:
                         for player in moment[5]:
-                            entry = (game_id, player[1], moment[1], player[2], player[3], moment[2], moment[3])
-                            current_moment.append(entry)
+                            if player[1] not in output:
+                                output[player[1]] = []
+                            output[player[1]].append({
+                                "x": player[2],
+                                "y": player[3],
+                                "game_clock": moment[2],
+                                "shot_clock": moment[3]
+                            })
                         done.append(moment[1])
-
-            except ValueError:
+                in_a_row = 0
+            except Exception:
                 in_a_row += 1
-                if in_a_row == 20:
-                    break
-                print "No Events Available: " + str(game_id) + "/" + str(current_event)
-            except KeyError:
-                in_a_row += 1
-                if in_a_row == 20:
-                    break
-                print "No Events Available: " + str(game_id) + "/" + str(current_event)
+                print "Error: " + str(game_id) + "/" + str(current_event)
             finally:
+                if in_a_row == 25:
+                    in_a_row = 0
+                    current_event = 1
+                    break
                 current_event += 1
-                if current_event % 10 == 0:
-                    yield current_moment
-                    current_moment = []
+        yield game_id, output
 

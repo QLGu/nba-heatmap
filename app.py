@@ -1,10 +1,9 @@
-from flask import Flask
-from secret import SECRET_KEY
+
 from flask import Flask
 from flask.ext.compress import Compress
+from secret import SECRET_KEY
 
-compress = Compress()
 app = Flask(__name__)
-# app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+Compress(app)
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.config.from_object(__name__)
-compress.init_app(app)

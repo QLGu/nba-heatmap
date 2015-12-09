@@ -9,6 +9,7 @@ function initializeData() {
         async: true,
         success: function(games) {
             console.log("got games")
+            console.log(games)
             getPlayers(updateGames(games))
         }
     });
@@ -21,7 +22,6 @@ function getPlayers(game_id) {
         data: {
             game_id: game_id,
         },
-        dataType: "JSON",
         global: false,
         async: false,
         success: function(object) {
@@ -35,6 +35,7 @@ function getPlayers(game_id) {
 
 function getCoordinates(game_id, player_id) {
     clearHeatmap()
+    $('#loading').fadeIn()
     $.ajax({
         url: "/nba/movement",
         method: "GET",
@@ -42,12 +43,14 @@ function getCoordinates(game_id, player_id) {
             game_id: game_id,
             player_id: player_id
         },
-        dataType: "JSON",
         global: false,
         async: true,
         success: function(coords) {
-            console.log("got coords")
-            updateHeatmap(coords['movement'])
+            console.log("got coords");
+            updateHeatmap(coords['locations']);
+            $('#loading').fadeOut(1000, function() {
+                updateHeatmap(coords['locations']);
+            })
         }
     })
 }
@@ -59,6 +62,7 @@ function updateGames(games) {
             text: v['game_name']
         }));
     })
+    console.log($('#games-selector').val())
     return $('#games-selector').val()
 }
 

@@ -12,8 +12,7 @@ DB_DSN = settings.DATABASE
 
 def drop_table():
     """
-    drops the table 'restaurants' if it exists
-    :return:
+    drops the table 'nba_teams' if it exists
     """
     query = 'DROP TABLE IF EXISTS nba_teams'
 
@@ -50,9 +49,7 @@ def create_table():
 
 def insert_data():
     """
-    inserts the data using execute many
-    :param data: a list of tuples with order ...
-    :return:
+    loads new teams from stats.nba.com into nba_teams using get_nba_data
     """
     teams = get_nba_data.get_teams()
     conn = psycopg2.connect(dsn=DB_DSN)
